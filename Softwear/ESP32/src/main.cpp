@@ -21,7 +21,7 @@ void os_getArtEui(u1_t *buf) { memcpy_P(buf, APPEUI, 8); }
 void os_getDevEui(u1_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 
-uint8_t mydata[] = "ERROR";
+uint8_t mydata[8];
 static osjob_t sendjob;
 
 // Schedule TX every this many seconds
@@ -50,16 +50,32 @@ const lmic_pinmap lmic_pins = {
 
 //##############################################################################
 
-void GPStoPayload(float lat,float lon, uint8_t* myPayload){
-    uint8_t payload[2];                     //grösse überprüffen
+void GPStoPayload(float lat,float lon, uint8_t myPayload[]){
+    uint8_t payload[8];                     //grösse überprüffen
 
-    u_int latNonDez = lat * 1000000;
-    u_int lonNonDez = lon * 1000000;
+    u_int latNonDez = lat * 100000;
+    u_int lonNonDez = lon * 100000;
 
-    payload[0] = latNonDez;
-    payload[1] = lonNonDez;
+    Serial.println(latNonDez);
+    Serial.println(lonNonDez);
+
+    payload[0] = latNonDez >> 24;
+    payload[1] = latNonDez >> 16;
+    payload[2] = latNonDez >> 8;
+    payload[3] = latNonDez;
+
+    payload[4] = lonNonDez >> 24;
+    payload[5] = lonNonDez >> 16;
+    payload[6] = lonNonDez >> 8;
+    payload[7] = lonNonDez;
+
+
+    
 
     myPayload = payload;
+
+    Serial.println(myPayload[0]);
+    Serial.println(myPayload[1]);
 }
 
 //##############################################################################
@@ -344,6 +360,14 @@ void onEvent(ev_t ev)
 
 void do_send(osjob_t *j)
 {
+    myGPS.loop();
+
+    Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
+    Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
+
+    GPStoPayload(47.212106, 7.781067, mydata);
+
+
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND)
     {
@@ -352,7 +376,7 @@ void do_send(osjob_t *j)
     else
     {
         // Prepare upstream data transmission at the next possible time.
-        LMIC_setTxData2(1, mydata, sizeof(mydata) - 1, 0);
+        LMIC_setTxData2(1, mydata, sizeof(mydata), 0);
         Serial.println(F("Packet queued"));
     }
     // Next TX is scheduled after TX_COMPLETE event.
@@ -437,10 +461,10 @@ void loop()
 
     myGPS.loop();
 
-    Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
-    Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
+    //Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
+    //Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
 
-    GPStoPayload(myGPS.getlat(), myGPS.getlon(), mydata);
+    //GPStoPayload(myGPS.getlat(), myGPS.getlon(), mydata);
 
     static unsigned long lastPrintTime = 0;
 
