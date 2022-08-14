@@ -71,8 +71,7 @@ void GPStoPayload(float lat,float lon, uint8_t myPayload[]){
 
 
     
-
-    myPayload = payload;
+    memcpy(myPayload, payload, 8);
 
     Serial.println(myPayload[0]);
     Serial.println(myPayload[1]);
@@ -365,7 +364,7 @@ void do_send(osjob_t *j)
     Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
     Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
 
-    GPStoPayload(47.212106, 7.781067, mydata);
+    GPStoPayload(47.516175, 7.60337, mydata);
 
 
     // Check if there is not a current TX/RX job running
