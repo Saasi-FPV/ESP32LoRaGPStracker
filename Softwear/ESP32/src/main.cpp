@@ -21,14 +21,15 @@ void os_getArtEui(u1_t *buf) { memcpy_P(buf, APPEUI, 8); }
 void os_getDevEui(u1_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 
-uint8_t mydata[8];
+uint8_t mydata[9];
 static osjob_t sendjob;
 
 // Schedule TX every this many seconds
 // Respect Fair Access Policy and Maximum Duty Cycle!
 // https://www.thethingsnetwork.org/docs/lorawan/duty-cycle.html
 // https://www.loratools.nl/#/airtime
-const unsigned TX_INTERVAL = 30;
+
+const unsigned TX_INTERVAL = 60;
 
 // Saves the LMIC structure during DeepSleep
 RTC_DATA_ATTR lmic_t RTC_LMIC;
@@ -51,7 +52,8 @@ const lmic_pinmap lmic_pins = {
 //##############################################################################
 
 void GPStoPayload(float lat,float lon, uint8_t myPayload[]){
-    uint8_t payload[8];                     //grösse überprüffen
+    uint8_t payload[9];
+    memcpy(payload, myPayload, 9);                     //grösse überprüffen
 
     u_int latNonDez = lat * 100000;
     u_int lonNonDez = lon * 100000;
@@ -71,10 +73,27 @@ void GPStoPayload(float lat,float lon, uint8_t myPayload[]){
 
 
     
-    memcpy(myPayload, payload, 8);
+    memcpy(myPayload, payload, 9);
+}
 
-    Serial.println(myPayload[0]);
-    Serial.println(myPayload[1]);
+void VoltageToPayload(uint8_t myPayload[]){
+    
+
+    uint8_t payload[9];
+    memcpy(payload, myPayload, 9);                     //grösse überprüffen
+
+    int voltage = 4095;
+
+    voltage = (voltage/10)/2;
+
+    Serial.println(voltage);
+
+    payload[8] = voltage;
+
+
+
+    
+    memcpy(myPayload, payload, 9);
 }
 
 //##############################################################################
@@ -364,7 +383,8 @@ void do_send(osjob_t *j)
     Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
     Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
 
-    GPStoPayload(47.516175, 7.60337, mydata);
+    GPStoPayload(myGPS.getlat(), myGPS.getlon(), mydata);
+    VoltageToPayload(mydata);
 
 
     // Check if there is not a current TX/RX job running
