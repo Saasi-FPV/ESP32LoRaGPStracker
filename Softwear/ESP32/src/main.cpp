@@ -7,10 +7,10 @@
 #include <SPI.h>
 #include <credentials.h>
 
-
+//GPS Class
 GPS myGPS;
 
-
+//DEEPSLEEP
 bool GOTO_DEEPSLEEP = true;
 
 // rename ttn_credentials.h.example to ttn_credentials.h and add you keys
@@ -21,6 +21,7 @@ void os_getArtEui(u1_t *buf) { memcpy_P(buf, APPEUI, 8); }
 void os_getDevEui(u1_t *buf) { memcpy_P(buf, DEVEUI, 8); }
 void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 
+//LoRa Payload
 uint8_t mydata[9];
 static osjob_t sendjob;
 
@@ -29,11 +30,13 @@ static osjob_t sendjob;
 // https://www.thethingsnetwork.org/docs/lorawan/duty-cycle.html
 // https://www.loratools.nl/#/airtime
 
+//Time betwen TX
 const unsigned TX_INTERVAL = 60;
 
 // Saves the LMIC structure during DeepSleep
 RTC_DATA_ATTR lmic_t RTC_LMIC;
 
+//LoRa Modul <--> ESP32
 #define PIN_LMIC_NSS 13
 #define PIN_LMIC_RST 14
 #define PIN_LMIC_DIO0 27
@@ -49,9 +52,12 @@ const lmic_pinmap lmic_pins = {
 };
 
 
+
+
+//GPS Payload formater
 //##############################################################################
 
-void GPStoPayload(float lat,float lon, uint8_t myPayload[]){
+void GPSToPayload(float lat,float lon, uint8_t myPayload[]){
     uint8_t payload[9];
     memcpy(payload, myPayload, 9);                     //grösse überprüffen
 
@@ -70,29 +76,21 @@ void GPStoPayload(float lat,float lon, uint8_t myPayload[]){
     payload[5] = lonNonDez >> 16;
     payload[6] = lonNonDez >> 8;
     payload[7] = lonNonDez;
-
-
     
     memcpy(myPayload, payload, 9);
 }
 
-void VoltageToPayload(uint8_t myPayload[]){
+void VoltageToPayload(float voltage, uint8_t myPayload[]){
     
 
     uint8_t payload[9];
     memcpy(payload, myPayload, 9);                     //grösse überprüffen
-
-    int voltage = 4095;
-
-    voltage = (voltage/10)/2;
-
-    Serial.println(voltage);
-
-    payload[8] = voltage;
-
-
-
     
+    u_int voltageNonDez = voltage*100;
+
+    //dividet by 2 to stay in 8-Bit (max 256)
+    payload[8] = voltageNonDez/2;
+
     memcpy(myPayload, payload, 9);
 }
 
@@ -378,15 +376,19 @@ void onEvent(ev_t ev)
 
 void do_send(osjob_t *j)
 {
+   
+/////////////////////////////////////////////////////////////////////////////
     myGPS.loop();
 
     Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
     Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
 
-    GPStoPayload(myGPS.getlat(), myGPS.getlon(), mydata);
+    GPSToPayload(myGPS.getlat(), myGPS.getlon(), mydata);
+
+
     VoltageToPayload(mydata);
 
-
+/////////////////////////////////////////////////////////////////////////////
     // Check if there is not a current TX/RX job running
     if (LMIC.opmode & OP_TXRXPEND)
     {
