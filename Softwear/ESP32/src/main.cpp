@@ -31,10 +31,14 @@ static osjob_t sendjob;
 // https://www.loratools.nl/#/airtime
 
 //Time betwen TX
-const unsigned TX_INTERVAL = 60;
+const unsigned TX_INTERVAL = 30;
 
 // Saves the LMIC structure during DeepSleep
 RTC_DATA_ATTR lmic_t RTC_LMIC;
+
+
+//BAT <--> ESP32
+#define PIN_BAT_VOLTAGE 33
 
 //LoRa Modul <--> ESP32
 #define PIN_LMIC_NSS 13
@@ -43,7 +47,7 @@ RTC_DATA_ATTR lmic_t RTC_LMIC;
 #define PIN_LMIC_DIO1 26
 #define PIN_LMIC_DIO2 25
 
-// Pin mapping
+// Pin mapping LoRa
 const lmic_pinmap lmic_pins = {
     .nss = PIN_LMIC_NSS,
     .rxtx = LMIC_UNUSED_PIN,
@@ -86,7 +90,8 @@ void VoltageToPayload(float voltage, uint8_t myPayload[]){
     uint8_t payload[9];
     memcpy(payload, myPayload, 9);                     //grösse überprüffen
     
-    u_int voltageNonDez = voltage*100;
+    int voltageNonDez = voltage*100;
+    Serial.print("Voltage: "); Serial.println(voltageNonDez);
 
     //dividet by 2 to stay in 8-Bit (max 256)
     payload[8] = voltageNonDez/2;
@@ -378,15 +383,18 @@ void do_send(osjob_t *j)
 {
    
 /////////////////////////////////////////////////////////////////////////////
-    myGPS.loop();
-
+    for(int i = 0; i < 10; i++){
+        myGPS.loop();
+        myGPS.getlat();
+        myGPS.getlon();
+        delay(100);
+    }
     Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
     Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
-
     GPSToPayload(myGPS.getlat(), myGPS.getlon(), mydata);
 
-
-    VoltageToPayload(mydata);
+    
+    VoltageToPayload(analogRead(PIN_BAT_VOLTAGE), mydata);
 
 /////////////////////////////////////////////////////////////////////////////
     // Check if there is not a current TX/RX job running
@@ -456,6 +464,8 @@ void setup()
     Serial.begin(115200);
 
     myGPS.init();
+
+    pinMode(PIN_BAT_VOLTAGE, INPUT);
 
     Serial.println(F("Starting DeepSleep test"));
     PrintLMICVersion();
