@@ -84,13 +84,13 @@ void GPSToPayload(float lat,float lon, uint8_t myPayload[]){
     memcpy(myPayload, payload, 9);
 }
 
-void VoltageToPayload(float voltage, uint8_t myPayload[]){
+void VoltageToPayload(float ADCValue, uint8_t myPayload[]){
     
 
     uint8_t payload[9];
     memcpy(payload, myPayload, 9);                     //grösse überprüffen
     
-    int voltageNonDez = voltage*100;
+    int voltageNonDez = ADCValue*100;                  //AUF SPANNUNGSTEILER UND 12BitADC ANPAASEN
     Serial.print("Voltage: "); Serial.println(voltageNonDez);
 
     //dividet by 2 to stay in 8-Bit (max 256)
@@ -491,11 +491,6 @@ void loop()
 {
 
     myGPS.loop();
-
-    //Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
-    //Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
-
-    //GPStoPayload(myGPS.getlat(), myGPS.getlon(), mydata);
 
     static unsigned long lastPrintTime = 0;
 
