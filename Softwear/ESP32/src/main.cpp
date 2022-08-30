@@ -7,13 +7,13 @@
 #include <SPI.h>
 #include <credentials.h>
 
-//GPS Class
-GPS myGPS;
-
 //DEEPSLEEP
 bool GOTO_DEEPSLEEP = true;
 
-// rename ttn_credentials.h.example to ttn_credentials.h and add you keys
+//Time betwen TX
+const unsigned TX_INTERVAL = 30;
+
+//credentials.h
 static const u1_t PROGMEM APPEUI[8] = TTN_APPEUI;
 static const u1_t PROGMEM DEVEUI[8] = TTN_DEVEUI;
 static const u1_t PROGMEM APPKEY[16] = TTN_APPKEY;
@@ -25,20 +25,21 @@ void os_getDevKey(u1_t *buf) { memcpy_P(buf, APPKEY, 16); }
 uint8_t mydata[9];
 static osjob_t sendjob;
 
-// Schedule TX every this many seconds
-// Respect Fair Access Policy and Maximum Duty Cycle!
-// https://www.thethingsnetwork.org/docs/lorawan/duty-cycle.html
-// https://www.loratools.nl/#/airtime
-
-//Time betwen TX
-const unsigned TX_INTERVAL = 30;
-
 // Saves the LMIC structure during DeepSleep
 RTC_DATA_ATTR lmic_t RTC_LMIC;
 
+//GPS Class
+GPS myGPS;
+
+
+//#################################################################################################################################//
+//######################################## PinMapping #############################################################################//
+//#################################################################################################################################//
 
 //BAT <--> ESP32
 #define PIN_BAT_VOLTAGE 33
+#define PIN_LED_DATA 22
+#define PIN_LED_LOWVOLTAGE 21
 
 //LoRa Modul <--> ESP32
 #define PIN_LMIC_NSS 13
@@ -55,17 +56,21 @@ const lmic_pinmap lmic_pins = {
     .dio = {PIN_LMIC_DIO0, PIN_LMIC_DIO1, PIN_LMIC_DIO2},
 };
 
+//#################################################################################################################################//
+//######################################## PinMapping #############################################################################//
+//#################################################################################################################################//
 
 
 
-//GPS Payload formater
-//##############################################################################
+//#################################################################################################################################//
+//############################################ Payload formater ###################################################################//
+//#################################################################################################################################//
 
 void GPSToPayload(float lat,float lon, uint8_t myPayload[]){
     uint8_t payload[9];
     memcpy(payload, myPayload, 9);                     //grösse überprüffen
 
-    u_int latNonDez = lat * 100000;
+    u_int latNonDez = lat * 100000;                    //To remove the decimalpoint
     u_int lonNonDez = lon * 100000;
 
     Serial.println(latNonDez);
@@ -99,13 +104,16 @@ void VoltageToPayload(float ADCValue, uint8_t myPayload[]){
     memcpy(myPayload, payload, 9);
 }
 
-//##############################################################################
+//#################################################################################################################################//
+//######################################## Payload formater #######################################################################//
+//#################################################################################################################################//
 
 
 
 
-
-
+//#################################################################################################################################//
+//######################################## LoRaHandler ############################################################################//
+//#################################################################################################################################//
 
 // opmode def
 // https://github.com/mcci-catena/arduino-lmic/blob/89c28c5888338f8fc851851bb64968f2a493462f/src/lmic/lmic.h#L233
@@ -404,9 +412,11 @@ void do_send(osjob_t *j)
     }
     else
     {
+        digitalWrite(PIN_LED_DATA, HIGH);
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, sizeof(mydata), 0);
         Serial.println(F("Packet queued"));
+        digitalWrite(PIN_LED_DATA, LOW);
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
@@ -450,6 +460,12 @@ void LoadLMICFromRTC()
     LMIC = RTC_LMIC;
 }
 
+//#################################################################################################################################//
+//######################################## LoRaHandler ############################################################################//
+//#################################################################################################################################//
+
+
+
 void GoDeepSleep()
 {
     Serial.println(F("Go DeepSleep"));
@@ -462,10 +478,11 @@ void GoDeepSleep()
 void setup()
 {
     Serial.begin(115200);
-
     myGPS.init();
 
     pinMode(PIN_BAT_VOLTAGE, INPUT);
+    pinMode(PIN_LED_DATA, OUTPUT);
+    pinMode(PIN_LED_LOWVOLTAGE, OUTPUT);
 
     Serial.println(F("Starting DeepSleep test"));
     PrintLMICVersion();
