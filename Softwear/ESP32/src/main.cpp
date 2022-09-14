@@ -1,3 +1,19 @@
+/* NOTIZEN
+                -DATA LED wird zurzeit als awake LED verwendet...
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
 #include <arduino.h>
 
 #include <GPS.h>
@@ -468,6 +484,9 @@ void LoadLMICFromRTC()
 
 void GoDeepSleep()
 {
+
+    digitalWrite(22, LOW);
+
     Serial.println(F("Go DeepSleep"));
     PrintRuntime();
     Serial.flush();
@@ -476,7 +495,7 @@ void GoDeepSleep()
 }
 
 void setup()
-{
+{   
     Serial.begin(115200);
     myGPS.init();
 
@@ -506,6 +525,8 @@ void setup()
 
 void loop()
 {
+
+    digitalWrite(22, HIGH);
 
     myGPS.loop();
 
