@@ -21,7 +21,7 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
-#include <credentials.h>
+#include <credentials_helium.h>
 
 //DEEPSLEEP
 bool GOTO_DEEPSLEEP = true;
@@ -53,7 +53,7 @@ GPS myGPS;
 //#################################################################################################################################//
 
 //BAT <--> ESP32
-#define PIN_BAT_VOLTAGE 33
+#define PIN_BAT_VOLTAGE A4
 #define PIN_LED_DATA 22
 #define PIN_LED_LOWVOLTAGE 21
 
@@ -111,7 +111,8 @@ void VoltageToPayload(float ADCValue, uint8_t myPayload[]){
     uint8_t payload[9];
     memcpy(payload, myPayload, 9);                     //grösse überprüffen
     
-    int voltageNonDez = ADCValue*100;                  //AUF SPANNUNGSTEILER UND 12BitADC ANPAASEN
+    int voltageNonDez = ((ADCValue*3.3)/4096);                  //AUF SPANNUNGSTEILER UND 12BitADC ANPAASEN
+    Serial.println(ADCValue);
     Serial.print("Voltage: "); Serial.println(voltageNonDez);
 
     //dividet by 2 to stay in 8-Bit (max 256)
@@ -413,9 +414,12 @@ void do_send(osjob_t *j)
         myGPS.getlon();
         delay(100);
     }
-    Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
-    Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
-    GPSToPayload(myGPS.getlat(), myGPS.getlon(), mydata);
+    //Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
+    //Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
+    //GPSToPayload(myGPS.getlat(), myGPS.getlon(), mydata);
+    Serial.print("Lat: "); Serial.println(47.5192, 8);
+    Serial.print("Lon: "); Serial.println(7.60165, 8);
+    GPSToPayload(47.5192, 7.60165, mydata);
 
     
     VoltageToPayload(analogRead(PIN_BAT_VOLTAGE), mydata);
@@ -518,6 +522,11 @@ void setup()
     }
 
     LoraWANDebug(LMIC);
+
+    //##########TEST for Helium#############//
+    LMIC_setClockError(1 * MAX_CLOCK_ERROR / 40);
+    //##########TEST for Helium#############//
+
 
     // Start job (sending automatically starts OTAA too)
     do_send(&sendjob);
