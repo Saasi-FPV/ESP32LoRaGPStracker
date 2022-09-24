@@ -53,7 +53,7 @@ GPS myGPS;
 //#################################################################################################################################//
 
 //BAT <--> ESP32
-#define PIN_BAT_VOLTAGE A4
+#define PIN_BAT_SENS 33
 #define PIN_LED_DATA 22
 #define PIN_LED_LOWVOLTAGE 21
 
@@ -111,7 +111,7 @@ void VoltageToPayload(float ADCValue, uint8_t myPayload[]){
     uint8_t payload[9];
     memcpy(payload, myPayload, 9);                     //grösse überprüffen
     
-    int voltageNonDez = ((ADCValue*3.3)/4096);                  //AUF SPANNUNGSTEILER UND 12BitADC ANPAASEN
+    int voltageNonDez = ADCValue * (3.3 /4096) *2;                 //((ADCValue*6.6)/4096);                  //AUF SPANNUNGSTEILER UND 12BitADC ANPAASEN
     Serial.println(ADCValue);
     Serial.print("Voltage: "); Serial.println(voltageNonDez);
 
@@ -414,15 +414,16 @@ void do_send(osjob_t *j)
         myGPS.getlon();
         delay(100);
     }
-    //Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
-    //Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
-    //GPSToPayload(myGPS.getlat(), myGPS.getlon(), mydata);
-    Serial.print("Lat: "); Serial.println(47.5192, 8);
-    Serial.print("Lon: "); Serial.println(7.60165, 8);
-    GPSToPayload(47.5192, 7.60165, mydata);
+    Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
+    Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
+    GPSToPayload(myGPS.getlat(), myGPS.getlon(), mydata);
+    //Serial.print("Lat: "); Serial.println(47.5192, 8);
+    //Serial.print("Lon: "); Serial.println(7.60165, 8);
+    //GPSToPayload(47.5192, 7.60165, mydata);
 
     
-    VoltageToPayload(analogRead(PIN_BAT_VOLTAGE), mydata);
+    Serial.print("TESTV: "); Serial.println(analogRead(PIN_BAT_SENS));
+    VoltageToPayload(analogRead(PIN_BAT_SENS), mydata);
 
 /////////////////////////////////////////////////////////////////////////////
     // Check if there is not a current TX/RX job running
@@ -503,7 +504,7 @@ void setup()
     Serial.begin(115200);
     myGPS.init();
 
-    pinMode(PIN_BAT_VOLTAGE, INPUT);
+    //pinMode(PIN_BAT_SENS, INPUT);
     pinMode(PIN_LED_DATA, OUTPUT);
     pinMode(PIN_LED_LOWVOLTAGE, OUTPUT);
 
@@ -524,7 +525,12 @@ void setup()
     LoraWANDebug(LMIC);
 
     //##########TEST for Helium#############//
-    LMIC_setClockError(1 * MAX_CLOCK_ERROR / 40);
+    LMIC_setClockError(MAX_CLOCK_ERROR * 2 / 100);
+
+    //LMIC_setLinkCheckMode(0);   // Disable link check validation
+    //LMIC_setAdrMode(false);     // Disable ADR
+    //LMIC.dn2Dr = DR_SF9;        // TTN uses SF9 for its RX2 window.
+    //LMIC_setDrTxpow(DR_SF7, 14); // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
     //##########TEST for Helium#############//
 
 
