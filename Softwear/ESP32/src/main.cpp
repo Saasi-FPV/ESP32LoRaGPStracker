@@ -414,6 +414,7 @@ void do_send(osjob_t *j)
         myGPS.getlon();
         delay(100);
     }
+    
     Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
     Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
     GPSToPayload(myGPS.getlat(), myGPS.getlon(), mydata);
@@ -423,7 +424,8 @@ void do_send(osjob_t *j)
 
     
     Serial.print("TESTV: "); Serial.println(analogRead(PIN_BAT_SENS));
-    VoltageToPayload(analogRead(PIN_BAT_SENS), mydata);
+    //VoltageToPayload(analogRead(PIN_BAT_SENS), mydata);
+    VoltageToPayload(4000, mydata);
 
 /////////////////////////////////////////////////////////////////////////////
     // Check if there is not a current TX/RX job running
@@ -491,6 +493,7 @@ void GoDeepSleep()
 {
 
     digitalWrite(22, LOW);
+    myGPS.doSleep();
 
     Serial.println(F("Go DeepSleep"));
     PrintRuntime();
@@ -544,6 +547,28 @@ void loop()
     digitalWrite(22, HIGH);
 
     myGPS.loop();
+
+
+    //EXPERIMENT
+    int time = millis();
+    
+    
+    while (!myGPS.validPos()) // || millis() <= (time + 600000)
+    {
+        myGPS.loop();
+        myGPS.getlat();
+        myGPS.getlon();
+        delay(100);
+        Serial.println("PosNotJetValid");
+        Serial.print("Valid: "); Serial.println(myGPS.validPos());
+        Serial.print("Lat: "); Serial.println(myGPS.getlat(), 8);
+        Serial.print("Lon: "); Serial.println(myGPS.getlon(), 8);
+        delay(500);
+
+    }
+
+
+
 
     static unsigned long lastPrintTime = 0;
 

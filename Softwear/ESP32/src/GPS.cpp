@@ -3,6 +3,8 @@
 //Init of the GPS HardwearSerial
 void GPS::init(){
     Serial1.begin(GPSBAUD, SERIAL_8N1, RXD2, TXD2);
+    pinMode(RESET, OUTPUT);
+    doWakeup();
     //Serial1.begin(GPSBAUD);
 }
 
@@ -32,6 +34,16 @@ float GPS::getlon(){
     }
 }
 
+//returns if Position is Valid
+bool GPS::validPos(){
+    if(gps.location.isValid()){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
 //returns numbers of fixed Satelites as int
 int GPS::satellites(){
     int x = gps.satellites.value();
@@ -39,4 +51,20 @@ int GPS::satellites(){
         return x;
     else
         return false;
+}
+
+//Sends command to Sleep
+void GPS::doSleep(){
+    Serial1.println("$PMTK161,0*28<CR><LF>");
+    delay(200);
+    Serial1.println("$PMTK161,0*28<CR><LF>");
+    delay(200);
+}
+
+
+//Sends command to wakeup
+void GPS::doWakeup(){
+    digitalWrite(RESET, LOW);
+    delay(20);
+    digitalWrite(RESET, HIGH);
 }
